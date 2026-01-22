@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="id" class="h-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saiul.Com - YouTube Downloader</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        :root { var(--primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        body { font-family: 'Poppins', sans-serif; background-color: #f4f7f6; }
+        .main-container { flex-shrink: 0; }
+        .card { border: none; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.07); background: #ffffff; }
+        .navbar-brand { font-weight: 700; color: #333 !important; }
+        .nav-link { font-weight: 500; }
+        .navbar { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .footer { background-color: #f4f7f6; color: black; padding: 1.5rem 0; font-size: 0.9rem; margin-top: auto; }
+        .btn-gradient { background: var(--primary-gradient); border: none; color: white; font-weight: 600; box-shadow: 0 7px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease; }
+        .btn-gradient:hover { color: white; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5); }
+    </style>
+</head>
+<body class="d-flex flex-column h-100">
+
+<nav class="navbar navbar-expand-lg navbar-light sticky-top">
+    <div class="container">
+        <a class="navbar-brand" href="index.html"><i class="fas fa-download text-primary me-2"></i>Saiul.Com</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="tiktok.html">TikTok</a></li>
+                <li class="nav-item"><a class="nav-link active" href="youtube.html">YouTube</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main class="main-container py-5 flex-shrink-0">
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="card p-4 p-lg-5">
+                 <div class="text-center mb-4">
+                    <i class="fab fa-youtube fa-3x mb-3 text-danger"></i>
+                    <h1 class="h2 fw-bold">YouTube Downloader</h1>
+                    <p class="text-muted">Unduh video favoritmu dalam format MP4 atau MP3.</p>
+                </div>
+                <form id="youtube-form">
+                    <div class="input-group input-group-lg mb-3 shadow-sm" style="border-radius: 50px; overflow: hidden;">
+                        <input type="url" id="url" class="form-control" placeholder="https://www.youtube.com/watch?v=..." required style="border: none; padding-left: 1.5rem;">
+                        <button type="submit" id="submit-btn" class="btn btn-gradient d-flex align-items-center justify-content-center px-4" style="gap: 0.5rem;">
+                            <span id="btn-text">Cari</span>
+                            <span id="spinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                        </button>
+                    </div>
+                </form>
+                
+                <div id="result-container" class="mt-4"></div>
+                
+                <!-- Panduan (Isi sama seperti sebelumnya, dipersingkat di sini agar muat) -->
+                <div class="mt-5 p-4 rounded-3" style="background-color: #f8f9fa;">
+                    <h3 class="h5 fw-bold mb-3"><i class="fas fa-book-open me-2 text-primary"></i>Panduan Penggunaan</h3>
+                    <p class="small">1. Salin link YouTube. <br> 2. Tempel di kolom di atas. <br> 3. Klik Cari dan pilih format unduhan.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</main>
+
+<footer class="footer text-center mt-auto">
+    <div class="container"><span class="text-muted">&copy; 2025 Saiul.Com. All rights reserved.</span></div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // LOGIKA JAVASCRIPT PENGGANTI PHP
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('youtube-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const btnText = document.getElementById('btn-text');
+        const spinner = document.getElementById('spinner');
+        const resultContainer = document.getElementById('result-container');
+        const apiKey = 'HAMS-2faccea41094'; // API Key Anda
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const url = document.getElementById('url').value.trim();
+            if (!url) return;
+
+            setLoading(true);
+            resultContainer.innerHTML = '';
+
+            try {
+                // Fetch Data MP4 & MP3 secara paralel langsung dari browser user
+                const [resMp4, resMp3] = await Promise.all([
+                    fetch(`https://api.hamsoffc.me/download/ytmp4?apikey=${apiKey}&url=${encodeURIComponent(url)}`).then(r => r.json()),
+                    fetch(`https://api.hamsoffc.me/download/ytmp3?apikey=${apiKey}&url=${encodeURIComponent(url)}`).then(r => r.json())
+                ]);
+
+                if (resMp4.status && resMp4.result && resMp4.result.url) {
+                    const data = {
+                        title: resMp4.result.judul || 'YouTube Video',
+                        thumbnail: resMp4.result.thumbnail || '',
+                        duration: resMp4.result.durasi || 'N/A',
+                        mp4_url: resMp4.result.url,
+                        mp3_url: resMp3.result && resMp3.result.url ? resMp3.result.url : '#'
+                    };
+                    displayResult(data);
+                } else {
+                    throw new Error('Gagal mengambil data video. Pastikan link valid.');
+                }
+            } catch (err) {
+                displayError(err.message || 'Terjadi kesalahan jaringan.');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        function setLoading(isLoading) {
+            btnText.classList.toggle('d-none', isLoading);
+            spinner.classList.toggle('d-none', !isLoading);
+            submitBtn.disabled = isLoading;
+            resultContainer.style.opacity = isLoading ? '0.5' : '1';
+        }
+
+        function displayError(message) {
+            resultContainer.innerHTML = `<div class="alert alert-danger mt-4"><i class="fas fa-exclamation-triangle me-2"></i><strong>Gagal:</strong> ${message}</div>`;
+        }
+
+        function displayResult(data) {
+            // Karena di GitHub Pages kita tidak bisa pakai proxy PHP buat download,
+            // tombol download akan langsung mengarah ke URL file asli.
+            // Browser user mungkin akan membuka videonya alih-alih mendownloadnya langsung.
+            
+            const resultHtml = `
+            <div class="p-4 rounded-3 mt-4" style="background: #f8f9fa;">
+                <div class="row g-4 align-items-center">
+                    <div class="col-md-5">
+                        <img src="${data.thumbnail}" alt="Thumbnail" class="img-fluid rounded-3 shadow-lg">
+                    </div>
+                    <div class="col-md-7 text-center">
+                        <h3 class="h5 fw-bold">${data.title}</h3>
+                        <p class="text-muted small mb-3"><i class="far fa-clock"></i> Durasi: ${data.duration}</p>
+                        <div class="d-flex justify-content-center flex-wrap gap-2">
+                            <a href="${data.mp3_url}" target="_blank" class="btn btn-warning rounded-pill shadow-sm text-dark px-3"><i class="fas fa-music me-2"></i>Audio (.mp3)</a>
+                            <a href="${data.mp4_url}" target="_blank" class="btn btn-success rounded-pill shadow-sm px-3"><i class="fas fa-video me-2"></i>Video (.mp4)</a>
+                        </div>
+                        <p class="small text-muted mt-2 fst-italic">*Klik kanan > Save Link As jika video diputar otomatis.</p>
+                    </div>
+                </div>
+            </div>`;
+            resultContainer.innerHTML = resultHtml;
+        }
+    });
+</script>
+</body>
+</html>
