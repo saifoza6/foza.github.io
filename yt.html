@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ReVanced Installer</title>
+    <meta name="theme-color" content="#121212">
+    <style>
+        /* --- CSS VARIABLES & RESET --- */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --surface-variant: #2d2d2d;
+            --text-primary: #e2e2e2;
+            --text-secondary: #a0a0a0;
+            --accent-primary: #c4f0bb; /* Material Green */
+            --accent-on-primary: #0c3b00;
+            --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* --- CONTAINER --- */
+        .container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* --- HEADER --- */
+        header {
+            padding: 20px 0;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 0.8s ease forwards;
+        }
+
+        header h1 {
+            font-size: 24px;
+            font-weight: 500;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* --- APP LIST & CARDS --- */
+        .app-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background-color: var(--surface-color);
+            border-radius: 24px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: transform 0.2s ease, background-color 0.2s;
+            border: 1px solid rgba(255,255,255,0.05);
+            opacity: 0; /* Hidden initially for animation */
+            transform: translateY(20px);
+        }
+
+        .card.visible {
+            animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        .card:active { transform: scale(0.98); }
+        .card:hover { background-color: var(--surface-variant); }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .icon-box {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .icon-box svg { width: 28px; height: 28px; fill: currentColor; }
+
+        .app-info { flex: 1; min-width: 0; }
+        .app-name { font-size: 18px; font-weight: 500; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .app-ver { 
+            font-size: 12px; 
+            background: rgba(255,255,255,0.1); 
+            padding: 2px 8px; 
+            border-radius: 8px;
+            color: var(--text-secondary);
+            display: inline-block;
+        }
+        
+        .app-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* --- BUTTONS --- */
+        .btn-download {
+            background-color: var(--accent-primary);
+            color: var(--accent-on-primary);
+            text-decoration: none;
+            padding: 14px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 14px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: opacity 0.2s;
+            margin-top: 8px;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .btn-download:hover { opacity: 0.9; }
+        .btn-download svg { width: 20px; height: 20px; fill: currentColor; }
+
+        /* --- FOOTER --- */
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div style="margin-bottom:10px;">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c4f0bb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+            </div>
+            <h1>App Installer</h1>
+            <p>Download versi terbaru yang kompatibel</p>
+        </header>
+
+        <div class="app-list" id="appList"></div>
+
+        <footer id="footerYear">
+            </footer>
+    </div>
+
+    <script>
+        // --- KONFIGURASI DATA APLIKASI ---
+        // Edit data di sini jika ingin mengubah link atau versi
+        const appsData = [
+            {
+                name: 'YouTube ReVanced',
+                version: 'v20.14.43',
+                desc: 'Ad-free, Background Play, SponsorBlock enabled.',
+                url: 'https://github.com/j-hc/revanced-magisk-module/releases/download/20221036/youtube-revanced-v20.14.43-all.apk',
+                color: '#ffadad', // Warna aksen Merah Pastel
+                iconPath: 'M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z'
+            },
+            {
+                name: 'GmsCore (MicroG)',
+                version: 'v0.3.1.4',
+                desc: 'Google Play Services framework proxy. Wajib install.',
+                url: 'https://github.com/ReVanced/GmsCore/releases/download/v0.3.1.4.240913/app.revanced.android.gms-240913008-signed.apk',
+                color: '#a0c4ff', // Warna aksen Biru Pastel
+                iconPath: 'M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7 1.49 0 2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z'
+            }
+        ];
+
+        // --- RENDER LOGIC ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('appList');
+            const footer = document.getElementById('footerYear');
+            
+            // Set Footer Year
+            footer.innerHTML = `&copy; ${new Date().getFullYear()} ReVanced Repo<br>Secure connection established`;
+
+            // Render Apps
+            appsData.forEach((app, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                // Set animation delay for staggering effect
+                card.style.animationDelay = `${(index + 1) * 0.15}s`;
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="icon-box" style="color: ${app.color}; background: ${app.color}20;">
+                            <svg viewBox="0 0 24 24"><path d="${app.iconPath}"/></svg>
+                        </div>
+                        <div class="app-info">
+                            <div class="app-name">${app.name}</div>
+                            <span class="app-ver">${app.version}</span>
+                        </div>
+                    </div>
+                    <div class="app-desc">${app.desc}</div>
+                    <a href="${app.url}" class="btn-download" target="_blank">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
+                        </svg>
+                        Download APK
+                    </a>
+                `;
+
+                container.appendChild(card);
+
+                // Trigger animation class after a tiny delay ensures transition plays
+                setTimeout(() => {
+                    card.classList.add('visible');
+                }, 50);
+            });
+        });
+    </script>
+</body>
+</html>
