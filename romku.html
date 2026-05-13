@@ -205,7 +205,7 @@
       display: flex;
       flex-direction: column;
       box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-      min-width: 0; /* PENGUNCI AGAR KARTU TIDAK MELEBAR KE SAMPING */
+      min-width: 0; /* Mencegah blowout layout */
     }
     
     .rom-card:hover {
@@ -255,7 +255,7 @@
       margin-top: auto;
       padding-top: 1rem;
       border-top: 1px dashed rgba(0,0,0,0.05);
-      width: 100%; /* Memastikan kontainer deskripsi menyesuaikan kartu */
+      width: 100%;
     }
 
     .admin-actions {
@@ -475,10 +475,12 @@
       <div style="margin-bottom: 1.2rem;">
         <label>Tipe Item</label>
         <select id="itemType" required>
-          <option value="rom">Custom ROM</option>
-          <option value="module">Module (Magisk / Addon)</option>
-          <option value="app">Aplikasi (APK)</option>
-          <option value="app">Gapps</option>
+          <option value="rom">📱 Custom ROM</option>
+          <option value="module">🧩 Module (Magisk / Addon)</option>
+          <option value="app">📦 Aplikasi (APK)</option>
+          <!-- TAMBAHAN TIPE BARU -->
+          <option value="gapps">🇬 Gapps (Google Apps)</option>
+          <option value="command">💻 Command / Script</option>
         </select>
       </div>
       
@@ -670,12 +672,19 @@
     grid.innerHTML = items.map(item => {
       let typeIcon, typeLabel, badgeStyle;
 
+      // PENGATURAN ICON & LABEL UNTUK TIPE BARU
       if (item.type === 'rom') {
         typeIcon = '<i class="fas fa-microchip"></i>'; typeLabel = 'Custom ROM';
         badgeStyle = 'background: rgba(59, 130, 246, 0.1); color: var(--secondary); border: 1px solid rgba(59, 130, 246, 0.15);';
       } else if (item.type === 'module') {
         typeIcon = '<i class="fas fa-puzzle-piece"></i>'; typeLabel = 'Module';
         badgeStyle = 'background: rgba(139, 92, 246, 0.1); color: var(--accent); border: 1px solid rgba(139, 92, 246, 0.15);';
+      } else if (item.type === 'gapps') {
+        typeIcon = '<i class="fab fa-google"></i>'; typeLabel = 'Gapps';
+        badgeStyle = 'background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.15);';
+      } else if (item.type === 'command') {
+        typeIcon = '<i class="fas fa-terminal"></i>'; typeLabel = 'Command';
+        badgeStyle = 'background: rgba(71, 85, 105, 0.1); color: #475569; border: 1px solid rgba(71, 85, 105, 0.15);';
       } else {
         typeIcon = '<i class="fas fa-box-open"></i>'; typeLabel = 'Aplikasi';
         badgeStyle = 'background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.15);';
@@ -688,7 +697,6 @@
         </div>
       ` : '';
       
-      // PERBAIKAN: Penambahan flex: 1, min-width: 0 dan display: block pada teks link agar ellipsis berfungsi sempurna.
       return `
         <div class="rom-card" data-id="${item.id}">
           ${adminActions}
@@ -735,8 +743,14 @@
     const badgeElem = document.getElementById("detailDeviceBadge");
     const bodyElem = document.getElementById("detailModalBody");
     
-    let iconClass = item.type === 'rom' ? 'fa-microchip' : item.type === 'module' ? 'fa-puzzle-piece' : 'fa-box-open';
-    titleElem.innerHTML = `<i class="fas ${iconClass} text-gradient" style="margin-right:8px;"></i> ${escapeHtml(item.name)}`;
+    // PENGATURAN ICON UNTUK MODAL DETAIL
+    let iconClass = 'fas fa-box-open';
+    if(item.type === 'rom') iconClass = 'fas fa-microchip';
+    else if(item.type === 'module') iconClass = 'fas fa-puzzle-piece';
+    else if(item.type === 'gapps') iconClass = 'fab fa-google';
+    else if(item.type === 'command') iconClass = 'fas fa-terminal';
+
+    titleElem.innerHTML = `<i class="${iconClass} text-gradient" style="margin-right:8px;"></i> ${escapeHtml(item.name)}`;
     badgeElem.innerHTML = `<i class="fas fa-mobile-alt"></i> Target HP: ${escapeHtml(item.device || 'Universal')}`;
 
     let stepsFormatted = escapeHtml(item.steps).replace(/\n/g, '<br>');
