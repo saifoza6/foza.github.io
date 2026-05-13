@@ -205,6 +205,7 @@
       display: flex;
       flex-direction: column;
       box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+      min-width: 0; /* PENGUNCI AGAR KARTU TIDAK MELEBAR KE SAMPING */
     }
     
     .rom-card:hover {
@@ -254,6 +255,7 @@
       margin-top: auto;
       padding-top: 1rem;
       border-top: 1px dashed rgba(0,0,0,0.05);
+      width: 100%; /* Memastikan kontainer deskripsi menyesuaikan kartu */
     }
 
     .admin-actions {
@@ -530,7 +532,7 @@
   </div>
 </div>
 
-<!-- MODAL LOGIN (Sudah diperbarui menggunakan Autentikasi Supabase) -->
+<!-- MODAL LOGIN -->
 <div id="loginModal" class="modal">
   <div class="modal-backdrop"></div>
   <div class="modal-content" style="max-width: 400px; padding: 2rem;">
@@ -562,18 +564,13 @@
   let items = [];
   let isAdminMode = false;
 
-  // Inisialisasi awal saat web dibuka
   async function initApp() {
-    // Mengecek apakah sebelumnya sudah login (sesi aktif)
     const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
-      isAdminMode = true;
-    }
+    if (session) { isAdminMode = true; }
     updateAuthUI();
     loadData();
   }
 
-  // Mengambil data dari database
   async function loadData() {
     document.getElementById("loadingState").classList.remove("hidden");
     document.getElementById("itemsGrid").classList.add("hidden");
@@ -594,7 +591,6 @@
     }
   }
 
-  // Menyimpan data ke database
   async function saveItem(itemData) {
     const saveBtn = document.getElementById("saveBtn");
     saveBtn.innerText = "Menyimpan...";
@@ -630,7 +626,6 @@
     }
   }
 
-  // Menghapus data dari database
   async function deleteItemById(id) {
     if (confirm(`Peringatan: Item akan dihapus secara permanen dari Database. Lanjutkan?`)) {
       try {
@@ -692,7 +687,7 @@
         </div>
       ` : '';
       
-      // PERBAIKAN LEBAR KARTU ADA DI BAGIAN "item-desc" BAWAH INI
+      // PERBAIKAN: Penambahan flex: 1, min-width: 0 dan display: block pada teks link agar ellipsis berfungsi sempurna.
       return `
         <div class="rom-card" data-id="${item.id}">
           ${adminActions}
@@ -705,7 +700,7 @@
           </div>
           <div class="item-desc">
             <i class="fas fa-link" style="color: #94a3b8; flex-shrink: 0;"></i>
-            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">
+            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; flex: 1; min-width: 0;">
               ${escapeHtml(item.downloadurl)}
             </span>
           </div>
@@ -816,9 +811,8 @@
       `;
       adminPanel.classList.remove("hidden");
       
-      // Tombol Logout Supabase
       document.getElementById("logoutBtn")?.addEventListener("click", async () => { 
-        await supabaseClient.auth.signOut(); // Mengakhiri sesi di server
+        await supabaseClient.auth.signOut();
         isAdminMode = false; 
         updateAuthUI(); 
       });
@@ -833,10 +827,8 @@
     renderAll();
   }
 
-  // EVENT LISTENER UNTUK LOGIN SUPABASE AUTH
   document.getElementById("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    
     const email = document.getElementById("adminEmail").value;
     const pass = document.getElementById("adminPass").value;
     const submitBtn = document.getElementById("submitLoginBtn");
@@ -844,18 +836,15 @@
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengecek...';
     submitBtn.disabled = true;
 
-    // Menghubungi server Supabase untuk login
     const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email: email,
-      password: pass,
+      email: email, password: pass,
     });
 
     submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Masuk Sekarang';
     submitBtn.disabled = false;
 
-    if (error) {
-      alert("Login Gagal! Pastikan Email dan Password sudah benar.");
-    } else {
+    if (error) { alert("Login Gagal! Pastikan Email dan Password sudah benar."); } 
+    else {
       isAdminMode = true;
       document.getElementById("loginModal").classList.remove("active");
       updateAuthUI();
@@ -885,7 +874,6 @@
     }
   });
 
-  // Jalankan inisiasi
   initApp();
 </script>
 </body>
