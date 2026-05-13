@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>ROM & Module Vault | Manajer Unduhan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  
+  <!-- LIBRARY SUPABASE -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  
+  <style>
+    /* ================= SETUP & VARIABLES ================= */
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #6366f1;
+      --secondary: #3b82f6;
+      --accent: #8b5cf6;
+      --success: #059669;
+      --bg-color: #f8fafc;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --card-bg: rgba(255, 255, 255, 0.75);
+      --card-border: rgba(255, 255, 255, 0.6);
+      --glass-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: var(--bg-color);
+      font-family: 'Inter', sans-serif;
+      color: var(--text-main);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+      padding: 2rem 1.5rem;
+    }
+
+    /* Background Ornaments */
+    .bg-blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(90px);
+      z-index: -1;
+      opacity: 0.6;
+      animation: float 10s infinite alternate ease-in-out;
+    }
+    .blob-1 { top: -10%; left: -10%; width: 40vw; height: 40vw; background: rgba(99, 102, 241, 0.3); }
+    .blob-2 { bottom: -10%; right: -5%; width: 35vw; height: 35vw; background: rgba(59, 130, 246, 0.3); }
+    .blob-3 { top: 40%; left: 60%; width: 25vw; height: 25vw; background: rgba(139, 92, 246, 0.2); }
+
+    @keyframes float {
+      0% { transform: translateY(0) scale(1); }
+      100% { transform: translateY(20px) scale(1.05); }
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ================= UTILITIES & COMPONENTS ================= */
+    .text-gradient {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 1.5rem;
+      box-shadow: var(--glass-shadow);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: 1rem;
+      font-weight: 600;
+      font-size: 0.875rem;
+      transition: var(--transition);
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+      color: white;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+      background: linear-gradient(135deg, var(--primary), #2563eb);
+    }
+
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: var(--primary);
+    }
+    .btn-outline:hover {
+      background: var(--primary-light);
+      color: white;
+      border-color: var(--primary-light);
+    }
+
+    .btn-sm { padding: 0.5rem 1rem; font-size: 0.8rem; }
+
+    .icon-btn {
+      background: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: var(--transition);
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    }
+    .icon-btn:hover {
+      background: #eef2ff;
+      color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(99, 102, 241, 0.15);
+    }
+    .icon-btn.danger:hover {
+      background: #fef2f2;
+      color: #ef4444;
+      border-color: #fca5a5;
+      box-shadow: 0 4px 10px rgba(239, 68, 68, 0.15);
+    }
+
+    /* ================= LAYOUT ================= */
+    .navbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2.5rem;
+      gap: 1rem;
+    }
+
+    .admin-panel-card {
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(to right, rgba(255, 255, 255, 0.8), rgba(238, 242, 255, 0.8));
+    }
+
+    .badge-count {
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--primary);
+      padding: 0.35rem 1rem;
+      border-radius: 40px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .info-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    /* ================= GRID & CARDS ================= */
+    .item-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 2rem;
+    }
+
+    .rom-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border-radius: 1.5rem;
+      padding: 1.5rem;
+      transition: var(--transition);
+      border: 1px solid var(--card-border);
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    }
+    
+    .rom-card:hover {
+      transform: translateY(-8px) scale(1.01);
+      box-shadow: 0 20px 30px -10px rgba(99, 102, 241, 0.15);
+      border-color: rgba(99, 102, 241, 0.3);
+      background: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%);
+    }
+
+    .type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.35rem 0.8rem;
+      border-radius: 40px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .item-name {
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin-top: 1rem;
+      margin-bottom: 0.25rem;
+      line-height: 1.4;
+      color: var(--text-main);
+    }
+    
+    .device-info {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--primary-light);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .item-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: auto;
+      padding-top: 1rem;
+      border-top: 1px dashed rgba(0,0,0,0.05);
+    }
+
+    .admin-actions {
+      position: absolute;
+      top: 1.25rem;
+      right: 1.25rem;
+      display: flex;
+      gap: 0.5rem;
+      z-index: 2;
+    }
+
+    /* ================= MODALS ================= */
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .modal.active { display: flex; }
+    
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      pointer-events: none;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    .modal-content {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 2rem;
+      max-width: 600px;
+      width: 100%;
+      padding: 2.5rem;
+      position: relative;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255,255,255,0.8);
+      animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 10;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.9) translateY(20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* Forms */
+    input, textarea, select {
+      width: 100%;
+      padding: 0.85rem 1.2rem;
+      border-radius: 1rem;
+      border: 1px solid #cbd5e1;
+      background: rgba(255, 255, 255, 0.8);
+      font-family: inherit;
+      font-size: 0.9rem;
+      transition: var(--transition);
+      color: var(--text-main);
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+      background: #fff;
+    }
+    label {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: block;
+      font-size: 0.85rem;
+      color: #334155;
+    }
+
+    .step-text {
+      background: rgba(241, 245, 249, 0.6);
+      padding: 1.5rem;
+      border-radius: 1.2rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      font-size: 0.9rem;
+      border-left: 4px solid var(--primary);
+      margin: 1.5rem 0;
+      color: #334155;
+    }
+
+    .download-section {
+      background: linear-gradient(135deg, rgba(238, 242, 255, 0.5), rgba(248, 250, 252, 0.8));
+      border: 1px solid rgba(99, 102, 241, 0.1);
+      border-radius: 1.2rem;
+      padding: 1.2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    
+    .download-link {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      word-break: break-all;
+      flex: 1;
+    }
+
+    .hidden { display: none !important; }
+    .flex { display: flex; }
+    .items-center { align-items: center; }
+    .gap-2 { gap: 0.5rem; }
+    .gap-3 { gap: 0.75rem; }
+    .w-full { width: 100%; }
+
+    /* Loading Spinner */
+    .loader {
+      border: 4px solid rgba(99, 102, 241, 0.2);
+      border-left-color: var(--primary);
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    @media (max-width: 640px) {
+      body { padding: 1rem; }
+      .item-grid { grid-template-columns: 1fr; }
+      .modal-content { padding: 1.5rem; border-radius: 1.5rem; }
+      .download-section { flex-direction: column; align-items: stretch; }
+      .download-section .btn { width: 100%; }
+      .navbar { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-blob blob-1"></div>
+<div class="bg-blob blob-2"></div>
+<div class="bg-blob blob-3"></div>
+
+<div class="container">
+  <!-- Navbar -->
+  <div class="navbar">
+    <div>
+      <h1 class="text-3xl font-extrabold" style="font-size: 2rem; letter-spacing: -0.5px;">
+        <i class="fas fa-database text-gradient mr-2"></i> 
+        <span class="text-gradient">FlashBase</span>
+      </h1>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">Pusat unduhan ROM, Module, & Aplikasi dengan panduan lengkap.</p>
+    </div>
+    <div id="authSection" class="flex gap-3 items-center"></div>
+  </div>
+
+  <!-- Panel Admin -->
+  <div id="adminPanel" class="glass-card admin-panel-card hidden">
+    <div class="flex items-center gap-3">
+      <div style="background: rgba(99,102,241,0.1); padding: 0.6rem; border-radius: 50%; color: var(--primary);">
+        <i class="fas fa-user-shield text-xl"></i>
+      </div>
+      <div>
+        <span style="font-weight: 700; display: block; color: var(--text-main);">Panel Admin Aktif</span>
+        <span style="font-size: 0.8rem; color: var(--text-muted);" id="adminItemCount">0 item dikelola</span>
+      </div>
+    </div>
+    <button id="openAddItemBtn" class="btn btn-primary" style="margin-top: 10px;">
+      <i class="fas fa-plus"></i> Tambah Baru
+    </button>
+  </div>
+
+  <!-- Info Bar -->
+  <div class="glass-card info-bar">
+    <div class="flex gap-4" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">
+      <span class="badge-count"><i class="fas fa-layer-group"></i> Total: <span id="totalCount">0</span> Item</span>
+      <span style="display: flex; align-items: center; gap: 5px;"><i class="fas fa-mouse-pointer text-gradient"></i> Klik kartu untuk detail & unduh</span>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loadingState" style="text-align: center; margin-top: 3rem;">
+    <div class="loader"></div>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">Memuat data dari database...</p>
+  </div>
+
+  <!-- Grid Items -->
+  <div id="itemsGrid" class="item-grid hidden"></div>
+
+  <!-- Empty State -->
+  <div id="emptyMsg" class="glass-card hidden" style="text-align: center; padding: 4rem 2rem; margin-top: 2rem;">
+    <div style="width: 80px; height: 80px; background: rgba(0,0,0,0.03); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+      <i class="fas fa-box-open" style="font-size: 2.5rem; color: #cbd5e1;"></i>
+    </div>
+    <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem;">Ruang Penyimpanan Kosong</h3>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">Belum ada item yang ditambahkan. Login sebagai admin untuk mulai.</p>
+  </div>
+</div>
+
+<!-- MODAL FORM TAMBAH/EDIT -->
+<div id="formModal" class="modal">
+  <div class="modal-backdrop"></div>
+  <div class="modal-content">
+    <div class="flex items-center" style="justify-content: space-between; margin-bottom: 1.5rem;">
+      <h2 id="formTitle" style="font-size: 1.3rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-pen-ruler text-gradient"></i> Tambah Item
+      </h2>
+      <button id="closeFormBtn" class="icon-btn" style="border: none; background: transparent; box-shadow: none; font-size: 1.5rem;">&times;</button>
+    </div>
+    <form id="itemForm">
+      <input type="hidden" id="editId" value="">
+      
+      <div style="margin-bottom: 1.2rem;">
+        <label>Tipe Item</label>
+        <select id="itemType" required>
+          <option value="rom">📱 Custom ROM</option>
+          <option value="module">🧩 Module (Magisk / Addon)</option>
+          <option value="app">📦 Aplikasi (APK)</option>
+        </select>
+      </div>
+      
+      <div style="margin-bottom: 1.2rem;">
+        <label>Nama / Judul *</label>
+        <input type="text" id="itemName" placeholder="Contoh: crDroid 10.6 / ViPER4Android" required>
+      </div>
+
+      <div style="margin-bottom: 1.2rem;">
+        <label>Target Perangkat (HP) *</label>
+        <input type="text" id="itemDevice" placeholder="Contoh: Poco X3 Pro / Universal" required>
+        <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">Isi "Universal" jika bisa dipakai di semua HP.</p>
+      </div>
+      
+      <div style="margin-bottom: 1.2rem;">
+        <label>Link Download Valid *</label>
+        <input type="url" id="itemLink" placeholder="https://..." required>
+      </div>
+      
+      <div style="margin-bottom: 1.5rem;">
+        <label>Panduan Instalasi (Step-by-step) *</label>
+        <textarea id="itemSteps" rows="3" placeholder="1. Backup data&#10;2. Wipe cache, dalvik, data&#10;3. Flash file&#10;4. Reboot" required></textarea>
+      </div>
+      
+      <div class="flex gap-3" style="justify-content: flex-end;">
+        <button type="button" id="cancelModalBtn" class="btn btn-outline">Batal</button>
+        <button type="submit" id="saveBtn" class="btn btn-primary"><i class="fas fa-save"></i> Simpan Data</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL DETAIL + DOWNLOAD -->
+<div id="detailModal" class="modal">
+  <div class="modal-backdrop"></div>
+  <div class="modal-content">
+    <div class="flex items-start" style="justify-content: space-between; margin-bottom: 1rem;">
+      <h2 id="detailModalTitle" style="font-size: 1.5rem; font-weight: 800; line-height: 1.3; padding-right: 1rem; color: var(--text-main);">
+        Detail Item
+      </h2>
+      <button id="closeDetailBtn" class="icon-btn" style="border: none; background: transparent; box-shadow: none; font-size: 1.5rem;">&times;</button>
+    </div>
+    
+    <div id="detailDeviceBadge" style="margin-bottom: 1rem; display: inline-flex; align-items: center; gap: 6px; background: #e0f2fe; color: #0284c7; padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem; border: 1px solid #bae6fd;">
+      <!-- Diisi oleh JS -->
+    </div>
+
+    <div id="detailModalBody"></div>
+    <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+      <button id="detailModalCloseBtn" class="btn btn-outline">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LOGIN (Sudah diperbarui menggunakan Autentikasi Supabase) -->
+<div id="loginModal" class="modal">
+  <div class="modal-backdrop"></div>
+  <div class="modal-content" style="max-width: 400px; padding: 2rem;">
+    <div class="flex items-center" style="justify-content: space-between; margin-bottom: 1rem;">
+      <h2 style="font-size: 1.2rem; font-weight: 800;"><i class="fas fa-lock text-gradient" style="margin-right: 8px;"></i> Akses Admin</h2>
+      <button id="closeLoginBtn" class="icon-btn" style="border: none; background: transparent; box-shadow: none; font-size: 1.5rem;">&times;</button>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Silakan login dengan akun Supabase kamu untuk mengelola item.</p>
+    
+    <form id="loginForm">
+      <div style="margin-bottom: 1rem;">
+        <input type="email" id="adminEmail" placeholder="Email Admin..." required autocomplete="email">
+      </div>
+      <div style="margin-bottom: 1.5rem;">
+        <input type="password" id="adminPass" placeholder="Password..." required autocomplete="current-password" style="letter-spacing: 2px;">
+      </div>
+      <button type="submit" id="submitLoginBtn" class="btn btn-primary w-full"><i class="fas fa-sign-in-alt"></i> Masuk Sekarang</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  // ================= KONFIGURASI SUPABASE =================
+  const SUPABASE_URL = 'https://abruraghvaqdlqoqeiie.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_5E_oCuRG1npcYvpmFMZBSw_VegJQYSg';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // ========================================================
+
+  let items = [];
+  let isAdminMode = false;
+
+  // Inisialisasi awal saat web dibuka
+  async function initApp() {
+    // Mengecek apakah sebelumnya sudah login (sesi aktif)
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+      isAdminMode = true;
+    }
+    updateAuthUI();
+    loadData();
+  }
+
+  // Mengambil data dari database
+  async function loadData() {
+    document.getElementById("loadingState").classList.remove("hidden");
+    document.getElementById("itemsGrid").classList.add("hidden");
+    document.getElementById("emptyMsg").classList.add("hidden");
+
+    try {
+      const { data, error } = await supabaseClient.from('items').select('*').order('type', { ascending: true });
+      if (error) throw error;
+      
+      items = data || [];
+      renderAll();
+    } catch (error) {
+      console.error("Error loading data:", error);
+      alert("Gagal mengambil data dari server. Pastikan koneksi stabil.");
+    } finally {
+      document.getElementById("loadingState").classList.add("hidden");
+      document.getElementById("itemsGrid").classList.remove("hidden");
+    }
+  }
+
+  // Menyimpan data ke database
+  async function saveItem(itemData) {
+    const saveBtn = document.getElementById("saveBtn");
+    saveBtn.innerText = "Menyimpan...";
+    saveBtn.disabled = true;
+
+    try {
+      if (itemData.id) {
+        const { error } = await supabaseClient
+          .from('items')
+          .update({ 
+            type: itemData.type, name: itemData.name, device: itemData.device, 
+            downloadurl: itemData.downloadurl, steps: itemData.steps 
+          })
+          .eq('id', itemData.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabaseClient
+          .from('items')
+          .insert([{ 
+            type: itemData.type, name: itemData.name, device: itemData.device, 
+            downloadurl: itemData.downloadurl, steps: itemData.steps 
+          }]);
+        if (error) throw error;
+      }
+      closeFormModal();
+      await loadData();
+    } catch (error) {
+      console.error("Error saving data:", error);
+      alert("Gagal menyimpan data ke server.");
+    } finally {
+      saveBtn.innerHTML = '<i class="fas fa-save"></i> Simpan Data';
+      saveBtn.disabled = false;
+    }
+  }
+
+  // Menghapus data dari database
+  async function deleteItemById(id) {
+    if (confirm(`Peringatan: Item akan dihapus secara permanen dari Database. Lanjutkan?`)) {
+      try {
+        const { error } = await supabaseClient.from('items').delete().eq('id', id);
+        if (error) throw error;
+        await loadData();
+      } catch (error) {
+        console.error("Error deleting data:", error);
+        alert("Gagal menghapus data dari server.");
+      }
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+
+  function renderAll() {
+    const grid = document.getElementById("itemsGrid");
+    const emptyDiv = document.getElementById("emptyMsg");
+    const totalSpan = document.getElementById("totalCount");
+    const adminItemSpan = document.getElementById("adminItemCount");
+
+    if (!items.length) {
+      grid.innerHTML = '';
+      emptyDiv.classList.remove("hidden");
+      totalSpan.innerText = "0";
+      if (adminItemSpan) adminItemSpan.innerText = "0 item dikelola";
+      return;
+    }
+    emptyDiv.classList.add("hidden");
+    totalSpan.innerText = items.length;
+    if (adminItemSpan) adminItemSpan.innerText = items.length + " item dikelola";
+
+    grid.innerHTML = items.map(item => {
+      let typeIcon, typeLabel, badgeStyle;
+
+      if (item.type === 'rom') {
+        typeIcon = '<i class="fas fa-microchip"></i>'; typeLabel = 'Custom ROM';
+        badgeStyle = 'background: rgba(59, 130, 246, 0.1); color: var(--secondary); border: 1px solid rgba(59, 130, 246, 0.15);';
+      } else if (item.type === 'module') {
+        typeIcon = '<i class="fas fa-puzzle-piece"></i>'; typeLabel = 'Module';
+        badgeStyle = 'background: rgba(139, 92, 246, 0.1); color: var(--accent); border: 1px solid rgba(139, 92, 246, 0.15);';
+      } else {
+        typeIcon = '<i class="fas fa-box-open"></i>'; typeLabel = 'Aplikasi';
+        badgeStyle = 'background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.15);';
+      }
+      
+      const adminActions = isAdminMode ? `
+        <div class="admin-actions">
+          <button class="icon-btn edit-item" data-id="${item.id}" title="Edit Data"><i class="fas fa-pen"></i></button>
+          <button class="icon-btn danger delete-item" data-id="${item.id}" title="Hapus Data"><i class="fas fa-trash-alt"></i></button>
+        </div>
+      ` : '';
+      
+      return `
+        <div class="rom-card" data-id="${item.id}">
+          ${adminActions}
+          <div class="flex items-center gap-2">
+            <span class="type-badge" style="${badgeStyle}">${typeIcon} ${typeLabel}</span>
+          </div>
+          <div class="item-name">${escapeHtml(item.name)}</div>
+          <div class="device-info">
+            <i class="fas fa-mobile-alt"></i> ${escapeHtml(item.device || 'Universal')}
+          </div>
+          <div class="item-desc">
+            <i class="fas fa-link" style="color: #94a3b8;"></i>
+            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
+              ${escapeHtml(item.downloadurl)}
+            </span>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    document.querySelectorAll(".rom-card").forEach(card => {
+      card.addEventListener("click", (e) => {
+        if (e.target.closest('.edit-item') || e.target.closest('.delete-item')) return;
+        const id = card.getAttribute("data-id");
+        showDetailModal(id);
+      });
+    });
+
+    if (isAdminMode) {
+      document.querySelectorAll(".edit-item").forEach(btn => {
+        btn.addEventListener("click", (e) => { e.stopPropagation(); openEditForm(btn.getAttribute("data-id")); });
+      });
+      document.querySelectorAll(".delete-item").forEach(btn => {
+        btn.addEventListener("click", (e) => { e.stopPropagation(); deleteItemById(btn.getAttribute("data-id")); });
+      });
+    }
+  }
+
+  function showDetailModal(itemId) {
+    const item = items.find(i => i.id === itemId);
+    if (!item) return;
+    
+    const titleElem = document.getElementById("detailModalTitle");
+    const badgeElem = document.getElementById("detailDeviceBadge");
+    const bodyElem = document.getElementById("detailModalBody");
+    
+    let iconClass = item.type === 'rom' ? 'fa-microchip' : item.type === 'module' ? 'fa-puzzle-piece' : 'fa-box-open';
+    titleElem.innerHTML = `<i class="fas ${iconClass} text-gradient" style="margin-right:8px;"></i> ${escapeHtml(item.name)}`;
+    badgeElem.innerHTML = `<i class="fas fa-mobile-alt"></i> Target HP: ${escapeHtml(item.device || 'Universal')}`;
+
+    let stepsFormatted = escapeHtml(item.steps).replace(/\n/g, '<br>');
+    if (!stepsFormatted.trim()) stepsFormatted = '<span style="font-style: italic; color: #94a3b8;">Tidak ada panduan instalasi.</span>';
+    
+    bodyElem.innerHTML = `
+      <div class="step-text">${stepsFormatted}</div>
+      <div class="download-section">
+        <div class="download-link">
+          <div style="font-weight: 700; color: var(--text-main); margin-bottom: 4px;">
+            <i class="fas fa-cloud-download-alt text-gradient" style="margin-right: 5px;"></i> Tautan Unduhan
+          </div>
+          <a href="${escapeHtml(item.downloadurl)}" target="_blank" rel="noopener noreferrer" style="color: var(--secondary); text-decoration: none;">
+            ${escapeHtml(item.downloadurl)}
+          </a>
+        </div>
+        <a href="${escapeHtml(item.downloadurl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="white-space: nowrap;">
+          <i class="fas fa-download"></i> Unduh File
+        </a>
+      </div>
+    `;
+    document.getElementById("detailModal").classList.add("active");
+  }
+
+  const formModal = document.getElementById("formModal");
+  function openAddForm() {
+    document.getElementById("formTitle").innerHTML = '<i class="fas fa-plus-circle text-gradient" style="margin-right:8px;"></i> Tambah Data Baru';
+    document.getElementById("editId").value = '';
+    document.getElementById("itemForm").reset();
+    document.getElementById("itemType").value = 'rom';
+    document.getElementById("itemDevice").value = '';
+    formModal.classList.add("active");
+  }
+
+  function openEditForm(id) {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    document.getElementById("formTitle").innerHTML = '<i class="fas fa-edit text-gradient" style="margin-right:8px;"></i> Perbarui Data';
+    document.getElementById("editId").value = item.id;
+    document.getElementById("itemType").value = item.type;
+    document.getElementById("itemName").value = item.name;
+    document.getElementById("itemDevice").value = item.device || '';
+    document.getElementById("itemLink").value = item.downloadurl;
+    document.getElementById("itemSteps").value = item.steps;
+    formModal.classList.add("active");
+  }
+
+  function closeFormModal() { formModal.classList.remove("active"); }
+
+  document.getElementById("itemForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const id = document.getElementById("editId").value;
+    const type = document.getElementById("itemType").value;
+    const name = document.getElementById("itemName").value.trim();
+    const device = document.getElementById("itemDevice").value.trim() || 'Universal';
+    const downloadurl = document.getElementById("itemLink").value.trim();
+    const steps = document.getElementById("itemSteps").value.trim();
+    
+    if (!name || !downloadurl || !steps) { alert("Semua field wajib diisi!"); return; }
+    saveItem({ id: id || null, type, name, device, downloadurl, steps });
+  });
+
+  function updateAuthUI() {
+    const authSection = document.getElementById("authSection");
+    const adminPanel = document.getElementById("adminPanel");
+    
+    if (isAdminMode) {
+      authSection.innerHTML = `
+        <span class="badge-count" style="background: rgba(16, 185, 129, 0.1); color: #059669; border-color: rgba(16, 185, 129, 0.2);">
+          <i class="fas fa-check-circle"></i> Mode Admin
+        </span>
+        <button id="logoutBtn" class="btn btn-outline btn-sm" style="border-radius: 40px;"><i class="fas fa-sign-out-alt"></i> Keluar</button>
+      `;
+      adminPanel.classList.remove("hidden");
+      
+      // Tombol Logout Supabase
+      document.getElementById("logoutBtn")?.addEventListener("click", async () => { 
+        await supabaseClient.auth.signOut(); // Mengakhiri sesi di server
+        isAdminMode = false; 
+        updateAuthUI(); 
+      });
+    } else {
+      authSection.innerHTML = `<button id="showLoginBtn" class="btn btn-primary btn-sm" style="border-radius: 40px; box-shadow: none;"><i class="fas fa-lock"></i> Akses Admin</button>`;
+      adminPanel.classList.add("hidden");
+      document.getElementById("showLoginBtn")?.addEventListener("click", () => {
+        document.getElementById("loginModal").classList.add("active");
+        setTimeout(() => document.getElementById("adminEmail").focus(), 100);
+      });
+    }
+    renderAll();
+  }
+
+  // EVENT LISTENER UNTUK LOGIN SUPABASE AUTH
+  document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    const email = document.getElementById("adminEmail").value;
+    const pass = document.getElementById("adminPass").value;
+    const submitBtn = document.getElementById("submitLoginBtn");
+    
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengecek...';
+    submitBtn.disabled = true;
+
+    // Menghubungi server Supabase untuk login
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: email,
+      password: pass,
+    });
+
+    submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Masuk Sekarang';
+    submitBtn.disabled = false;
+
+    if (error) {
+      alert("Login Gagal! Pastikan Email dan Password sudah benar.");
+    } else {
+      isAdminMode = true;
+      document.getElementById("loginModal").classList.remove("active");
+      updateAuthUI();
+    }
+    document.getElementById("adminPass").value = '';
+  });
+
+  document.getElementById("closeFormBtn")?.addEventListener("click", closeFormModal);
+  document.getElementById("cancelModalBtn")?.addEventListener("click", closeFormModal);
+  
+  const detailModal = document.getElementById("detailModal");
+  function closeDetailModal() { detailModal.classList.remove("active"); }
+  document.getElementById("closeDetailBtn")?.addEventListener("click", closeDetailModal);
+  document.getElementById("detailModalCloseBtn")?.addEventListener("click", closeDetailModal);
+  
+  const loginModal = document.getElementById("loginModal");
+  function closeLoginModal() { loginModal.classList.remove("active"); }
+  document.getElementById("closeLoginBtn")?.addEventListener("click", closeLoginModal);
+  
+  document.getElementById("openAddItemBtn")?.addEventListener("click", openAddForm);
+  
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      if (formModal.classList.contains("active")) closeFormModal();
+      if (detailModal.classList.contains("active")) closeDetailModal();
+      if (loginModal.classList.contains("active")) closeLoginModal();
+    }
+  });
+
+  // Jalankan inisiasi
+  initApp();
+</script>
+</body>
+</html>
